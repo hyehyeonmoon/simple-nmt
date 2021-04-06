@@ -68,23 +68,29 @@ class Encoder(nn.Module):
             # As you can see,
             # PackedSequence object has information about mini-batch-wise information,
             # not time-step-wise information.
+            # padding을 잘 처리 할 수 있도록 만들어줌
             # 
             # a = [torch.tensor([1,2,3]), torch.tensor([3,4])]
             # b = torch.nn.utils.rnn.pad_sequence(a, batch_first=True)
             # >>>>
             # tensor([[ 1,  2,  3],
-            #     [ 3,  4,  0]])
+            #     [ 3,  4,  0]]) ## 우리가 원하는 padding 먹인 형태
             # torch.nn.utils.rnn.pack_padded_sequence(b, batch_first=True, lengths=[3,2]
             # >>>>PackedSequence(data=tensor([ 1,  3,  2,  4,  3]), batch_sizes=tensor([ 2,  2,  1]))
+            # pack_padded_sequence는 가로에서 읽는 것이 아닌 세로에서 읽음, padding(0)의 경우 torchtext에서 sorting해서 주지만, 그냥 이용할 경우 sorting이 꼭 필요함
+            # 문장 1개에 대해서  (word_vec_size, length)의 경우 n차원짜리 단어가 (단어, 단어, 단어, 단어...)의 형태이므로 세로에서 읽는 게 맞기 때문에 가로가 아닌 세로가 맞다고 생각함.
         else:
             x = emb
 
         y, h = self.rnn(x)
+        # h[0] : 마지막 time step의 hidden state
+        # h[1] : 마지막 time step의 cell state
         # |y| = (batch_size, length, hidden_size)
         # |h[0]| = (num_layers * 2, batch_size, hidden_size / 2)
 
         if isinstance(emb, tuple):
             y, _ = unpack(y, batch_first=True)
+            # unpack을 해주어야 |y| = (batch_size, length, hidden_size) 형태가 
 
         return y, h
 
